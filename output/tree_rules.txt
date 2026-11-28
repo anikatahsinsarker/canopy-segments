@@ -1,0 +1,37 @@
+|--- discount_share <= 0.57
+|   |--- days_since_last_order <= 112.50
+|   |   |--- return_rate <= 0.11
+|   |   |   |--- tenure_months <= 9.00
+|   |   |   |   |--- class: 4
+|   |   |   |--- tenure_months >  9.00
+|   |   |   |   |--- class: 2
+|   |   |--- return_rate >  0.11
+|   |   |   |--- tenure_months <= 7.50
+|   |   |   |   |--- class: 4
+|   |   |   |--- tenure_months >  7.50
+|   |   |   |   |--- class: 0
+|   |--- days_since_last_order >  112.50
+|   |   |--- discount_share <= 0.55
+|   |   |   |--- days_since_last_order <= 149.00
+|   |   |   |   |--- class: 3
+|   |   |   |--- days_since_last_order >  149.00
+|   |   |   |   |--- class: 3
+|   |   |--- discount_share >  0.55
+|   |   |   |--- avg_order_value <= 54.58
+|   |   |   |   |--- class: 3
+|   |   |   |--- avg_order_value >  54.58
+|   |   |   |   |--- class: 4
+|--- discount_share >  0.57
+|   |--- tenure_months <= 5.00
+|   |   |--- discount_share <= 0.69
+|   |   |   |--- class: 4
+|   |   |--- discount_share >  0.69
+|   |   |   |--- avg_order_value <= 44.48
+|   |   |   |   |--- class: 1
+|   |   |   |--- avg_order_value >  44.48
+|   |   |   |   |--- class: 4
+|   |--- tenure_months >  5.00
+|   |   |--- orders_per_year <= 2.50
+|   |   |   |--- class: 3
+|   |   |--- orders_per_year >  2.50
+|   |   |   |--- class: 1

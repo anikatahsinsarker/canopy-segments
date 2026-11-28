@@ -37,7 +37,9 @@ def scale_features(df):
     Use MinMaxScaler. Fit the scaler on df[FEATURES] and return the scaled values
     (a NumPy array with one row per customer and one column per feature, in FEATURES order).
     """
-    raise NotImplementedError
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(df[FEATURES])
+    return X
 
 
 def fit_kmeans(X, k):
@@ -45,7 +47,9 @@ def fit_kmeans(X, k):
 
     Use KMeans with n_clusters=k, n_init=N_INIT, and random_state=RANDOM_STATE.
     """
-    raise NotImplementedError
+    model = KMeans(n_clusters=k, n_init=N_INIT, random_state=RANDOM_STATE)
+    model.fit(X)
+    return model
 
 
 def evaluate_k(X, ks=K_RANGE):
@@ -60,7 +64,25 @@ def evaluate_k(X, ks=K_RANGE):
     Hint: model.transform(X) returns each customer's distance to every center; the distance
     to the customer's own center is the smallest value in each row.
     """
-    raise NotImplementedError
+    results = []
+
+    for k in ks:
+        model = fit_kmeans(X, k)
+
+        # Find each customer's nearest center, then average the distances.
+        distances = model.transform(X)
+        avg_distance = round(distances.min(axis=1).mean(), 4)
+
+        # Measure how distinct the clusters are.
+        sc = round(silhouette_score(X, model.labels_), 4)
+
+        results.append({
+            "k": k,
+            "avg_distance_to_center": avg_distance,
+            "silhouette": sc,
+        })
+
+    return pd.DataFrame(results)
 
 
 def assign_clusters(df, X, k):
@@ -68,7 +90,12 @@ def assign_clusters(df, X, k):
 
     The cluster is the k-means label (0 to k - 1) from fit_kmeans(X, k).
     """
-    raise NotImplementedError
+    model = fit_kmeans(X, k)
+
+    return pd.DataFrame({
+        "customer_id": df["customer_id"],
+        "cluster": model.labels_,
+    })
 
 
 def profile_clusters(df, assignments):
@@ -77,7 +104,30 @@ def profile_clusters(df, assignments):
     Columns, in order: cluster, customers, then FEATURES. Averages use the original
     (unscaled) values and are rounded to 2 decimals. Rows are sorted by cluster.
     """
-    raise NotImplementedError
+    # Match each customer's original features to their cluster assignment.
+    customer_clusters = df.merge(
+        assignments,
+        on="customer_id",
+        validate="one_to_one",
+    )
+
+    # Calculate averages in original units, not scaled values.
+    cluster_averages = (
+        customer_clusters.groupby("cluster")[FEATURES]
+        .mean()
+        .round(2)
+    )
+
+    # Count customers and combine the results by cluster.
+    cluster_counts = (
+        customer_clusters.groupby("cluster")
+        .size()
+        .rename("customers")
+    )
+
+    profile = cluster_counts.to_frame().join(cluster_averages)
+
+    return profile.reset_index().sort_values("cluster")
 
 
 def train_surrogate(df, assignments, depth):
@@ -87,14 +137,33 @@ def train_surrogate(df, assignments, depth):
     Train on df[FEATURES] (unscaled) with the cluster from assignments as the label.
     Return the fitted tree.
     """
-    raise NotImplementedError
+    customer_clusters = df.merge(
+        assignments,
+        on="customer_id",
+        validate="one_to_one",
+    )
+
+    tree = DecisionTreeClassifier(
+        max_depth=depth,
+        random_state=RANDOM_STATE,
+    )
+
+    tree.fit(customer_clusters[FEATURES], customer_clusters["cluster"])
+    return tree
 
 
 def agreement(tree, df, assignments):
     """Return the share of customers (0 to 1) whose tree prediction matches the k-means cluster."""
-    raise NotImplementedError
-
+    
+    customer_clusters = df.merge(
+    assignments,
+    on="customer_id",
+    validate="one_to_one",
+    )
+    prediction = tree.predict(customer_clusters[FEATURES])
+    matches = prediction == customer_clusters["cluster"].to_numpy()
+    return matches.mean()
 
 def tree_rules(tree):
     """Return the tree's rules as text, using export_text with the FEATURES names."""
-    raise NotImplementedError
+    return export_text(tree, feature_names=FEATURES)
